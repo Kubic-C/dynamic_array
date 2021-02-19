@@ -52,12 +52,12 @@ namespace DYNM_ARR_NAMESPACE_NAME
 	class error
 	{
 	public:
-		error(std::string error)
+		error(const char* error)
 		{
 			what = error;
 		}
 
-		std::string what = "";
+		const char* what = "";
 	};
 
 	template<typename type>
@@ -102,7 +102,7 @@ namespace DYNM_ARR_NAMESPACE_NAME
 		void _move_elements_from(_table<type>& table);
 
 	public: // operators
-
+		type& operator[](size_t index);
 
 	public: // iterators
 		typedef type* iterator;
@@ -119,6 +119,8 @@ namespace DYNM_ARR_NAMESPACE_NAME
 
 	};
 
+	// // constructors \\ \\
+
 	template<typename type>
 	dynamic_array<type>::dynamic_array()
 		: table()
@@ -126,6 +128,8 @@ namespace DYNM_ARR_NAMESPACE_NAME
 		// allocate zero elements
 		table.elements = new type[0];
 	}
+
+	// // methods \\ \\
 
 	template<typename type>
 	void dynamic_array<type>::push_back(const type& element_a)
@@ -193,8 +197,8 @@ namespace DYNM_ARR_NAMESPACE_NAME
 	template<typename type>
 	void dynamic_array<type>::_move_elements_into(_table<type>& table_a)
 	{
-		// insure that the table handle all the elements
-		if (table_a.capacity < table.capacity)
+		// insure that the table handle all the elements. if( amount allocated [less then] amount of elements )
+		if (table_a.capacity < table.size)
 			throw error("cannot move elements; table_a does not have enough space allocated");
 
 		// then just move all elements to the new table
@@ -212,8 +216,8 @@ namespace DYNM_ARR_NAMESPACE_NAME
 	template<typename type>
 	void dynamic_array<type>::_move_elements_from(_table<type>& table_a)
 	{
-		// insure that the table handle all the elements
-		if (table.capacity < table_a.capacity)
+		// insure that the table handle all the elements. if( amount allocated [less then] amount of elements )
+		if (table.capacity < table_a.size)
 			throw error("cannot move elements; this->table does not have enough space allocated");
 
 		// then just move all elements from table_a into this->table
@@ -227,6 +231,22 @@ namespace DYNM_ARR_NAMESPACE_NAME
 		table_a.capacity = 0;
 		table_a.size = 0;
 	}
+
+	// // operators \\ \\
+
+	template<typename type>
+	type& dynamic_array<type>::operator[](size_t index_a)
+	{
+		if (index_a > table.size)
+			throw error("invalid index; index_a is more then this->table.size");
+
+		if (index_a < 0)
+			index_a = table.size - (-index_a);
+
+		return table.elements[index_a];
+	}
+
+	// // iterators \\ \\
 
 	template<typename type>
 	dynamic_array<type>::iterator dynamic_array<type>::begin()
