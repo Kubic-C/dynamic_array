@@ -18,9 +18,18 @@
  * 
  * // vvv READ THIS vvv //
  * 
+ * if you get an error saying uknown member or something
+ * simlar do(at the top of file):
+ * #define _Ptr base
+ * 
  * THE CHALLENGE:
  * use no includes, even those 
- * from the standerd library
+ * from the standerd library( only exception is when DYNM_ARR_VECTOR_COMPATIBLE is defined )
+ * 
+ * if you want to make this
+ * intercompatible with std::vector do:
+ * #define DYNM_ARR_VECTOR_COMPATIBLE
+ *
  * 
  * if you want to define to change 
  * the namespace name, do:
@@ -31,9 +40,6 @@
  * you should use the std::vector<> class
  * for dynamic arrays(as it may be faster),
  * and can be constructed with arrays, for example: std::vector<int> foo = { 0, 1, 2 }.
- * 
- * this impl should be completly
- * compatible the std::vector<> class
  * 
  * all function/method definitions will be 
  * commented :D
@@ -48,7 +54,11 @@
 
 #ifndef DYNM_ARR_NAMESPACE_NAME
 #define DYNM_ARR_NAMESPACE_NAME kubic
-#endif
+#endif // DYNM_ARR_NAMESPACE_NAME
+
+#ifdef DYNM_ARR_VECTOR_COMPATIBLE
+#include <vector>
+#endif // DYNM_ARR_VECTOR_COMPATIBLE
 
 namespace DYNM_ARR_NAMESPACE_NAME
 {
@@ -59,7 +69,7 @@ namespace DYNM_ARR_NAMESPACE_NAME
 		{
 			what = error;
 		}
-
+		
 		const char* what = "";
 	};
 
@@ -74,6 +84,17 @@ namespace DYNM_ARR_NAMESPACE_NAME
 
 		// array
 		type* elements = nullptr;
+
+		void delete_()
+		{
+			if (!elements)
+			{
+				delete[] elements;
+				elements = nullptr;
+				capacity = 0;
+				size = 0;
+			}
+		}
 	};
 
 	// class impl of a dynamic array
@@ -84,6 +105,10 @@ namespace DYNM_ARR_NAMESPACE_NAME
 		dynamic_array();
 
 		dynamic_array(const type* begin, const type* end);
+
+#ifdef DYNM_ARR_VECTOR_COMPATIBLE
+		dynamic_array(std::initializer_list<type>);
+#endif // DYNM_ARR_VECTOR_COMPATIBLE
 
 		~dynamic_array();
 
@@ -96,6 +121,9 @@ namespace DYNM_ARR_NAMESPACE_NAME
 
 		const_iterator begin() const { return (iterator)&table.elements[0]; }
 		const_iterator end() const { return (const_iterator)&table.elements[table.size]; }
+
+		struct size_t_tag {};
+		struct ptr_t_tag {};
 
 	public: // methods
 		_table<type> get_table() const;
@@ -139,7 +167,15 @@ namespace DYNM_ARR_NAMESPACE_NAME
 		void resize(size_t size_a);
 
 		// insert an array into the dynamic array
-		void insert(size_t where_, iterator begin, iterator end);
+		void insert(size_t where_, iterator begin, iterator end, size_t_tag = size_t_tag());
+
+		// insert an array into the dynamic array
+		void insert(iterator where_, iterator begin, iterator end, ptr_t_tag = ptr_t_tag());
+
+#ifdef DYNM_ARR_VECTOR_COMPATIBLE
+		// insert a vector into the dynamic array
+		void insert(iterator where_, typename std::vector<type>::iterator  begin, typename std::vector<type>::iterator  end);
+#endif // DYNM_ARR_VECTOR_COMPATIBLE
 
 		// move all elements into a new table; move table(member) into table(argrument) 
 		void _move_elements_into(_table<type>& table);
@@ -150,6 +186,9 @@ namespace DYNM_ARR_NAMESPACE_NAME
 	public: // operators
 		type& operator[](size_t index);
 
+#ifdef DYNM_ARR_VECTOR_COMPATIBLE
+		operator std::vector<type>();
+#endif // DYNM_ARR_VECTOR_COMPATIBLE
 
 	private: // members
 		_table<type> table;
@@ -168,9 +207,17 @@ namespace DYNM_ARR_NAMESPACE_NAME
 	dynamic_array<type>::dynamic_array(const type* begin, const type* end)
 	{
 		clear();
-		for (type* i = begin; i != end; i++)
-			push_back(*i);
+		insert(0, begin, end);
 	}
+
+#ifdef DYNM_ARR_VECTOR_COMPATIBLE
+	template<typename type>
+	dynamic_array<type>::dynamic_array(std::initializer_list<type> init_list_a)
+	{
+		clear();
+		insert(0, (type*)init_list_a.begin(), (type*)init_list_a.end(), ptr_t_tag());
+	}
+#endif // DYNM_ARR_VECTOR_COMPATIBLE
 
 	template<typename type>
 	dynamic_array<type>::~dynamic_array()
@@ -216,11 +263,7 @@ namespace DYNM_ARR_NAMESPACE_NAME
 	template<typename type>
 	void dynamic_array<type>::clear()
 	{
-		delete[] table.elements;
-
-		table.size = 0;
-		table.capacity = 0;
-		table.elements = nullptr;
+		table.delete_();
 	}
 
 	template<typename type>
@@ -329,7 +372,7 @@ namespace DYNM_ARR_NAMESPACE_NAME
 			if (!(begin_a <= i && end_a >= i))
 				push_back(*i);
 
-		delete[] table_copy.elements;
+		table_copy.delete_();
 	}
 
 	template<typename type>
@@ -349,7 +392,7 @@ namespace DYNM_ARR_NAMESPACE_NAME
 			for (size_t i = 0; i != table.size; i++)
 				table.elements[i] = table_copy.elements[i];
 
-			delete[] table_copy.elements;
+			table_copy.delete_();
 			return;
 		}
 
@@ -368,7 +411,7 @@ namespace DYNM_ARR_NAMESPACE_NAME
 			for (size_t i = 0; i != table.size; i++)
 				table.elements[i] = table_copy.elements[i];
 
-			delete[] table_copy.elements;
+			table_copy.delete_();
 			return;
 		}
 
@@ -376,7 +419,7 @@ namespace DYNM_ARR_NAMESPACE_NAME
 	}
 
 	template<typename type>
-	void dynamic_array<type>::insert(size_t where_a, iterator begin_a, iterator end_a)
+	void dynamic_array<type>::insert(size_t where_a, iterator begin_a, iterator end_a, dynamic_array<type>::size_t_tag)
 	{
 		if (where_a > table.size)
 			throw error("invalid index; where_a is more then table.size");
@@ -385,7 +428,7 @@ namespace DYNM_ARR_NAMESPACE_NAME
 		_table<type> table_copy = table;
 
 		// calculates how many elements are between end_a and begin_a
-		size_t amount_of_elements = ((end_a - begin_a) + 1);
+		size_t amount_of_elements = ((end_a - begin_a));
 		
 		// sets the capacity based on that
 		//				|amount of elements|		|unused space|          | old elements |
@@ -416,8 +459,25 @@ namespace DYNM_ARR_NAMESPACE_NAME
 			}
 		}
 
-		delete[] table_copy;
+		table_copy.delete_();
 	}
+
+	template<typename type>
+	void dynamic_array<type>::insert(iterator where_a, iterator begin_a, iterator end_a, dynamic_array<type>::ptr_t_tag)
+	{
+		size_t where_int = begin() - where_a;
+		insert(where_int, begin_a, end_a, size_t_tag());
+	}
+
+#ifdef DYNM_ARR_VECTOR_COMPATIBLE
+	// insert a vector into the dynamic array
+	template<typename type>
+	void dynamic_array<type>::insert(iterator where_a, typename std::vector<type>::iterator begin_a, typename std::vector<type>::iterator end_a)
+	{
+		size_t where_int =	where_a - begin();
+		insert(where_int, begin_a._Ptr, end_a._Ptr, size_t_tag());
+	}
+#endif // DYNM_ARR_VECTOR_COMPATIBLE
 
 	template<typename type>
 	void dynamic_array<type>::_move_elements_into(_table<type>& table_a)
@@ -433,9 +493,7 @@ namespace DYNM_ARR_NAMESPACE_NAME
 		table_a.size = table.size;
 
 		// then just remove all the old elements
-		delete[]table.elements;
-		table.capacity = 0;
-		table.size = 0;
+		table.delete_();
 	}
 
 	template<typename type>
@@ -452,9 +510,7 @@ namespace DYNM_ARR_NAMESPACE_NAME
 		table.size = table_a.size;
 
 		// then just remove all the old elements
-		delete[] table_a.elements;
-		table_a.capacity = 0;
-		table_a.size = 0;
+		table_a.delete_();
 	}
 
 	// // operators \\ \\
@@ -464,6 +520,29 @@ namespace DYNM_ARR_NAMESPACE_NAME
 	{
 		return get(index_a);
 	}
+
+#ifdef DYNM_ARR_VECTOR_COMPATIBLE
+
+	// dynm_array to vector
+	template<typename type>
+	dynamic_array<type>::operator std::vector<type>()
+	{
+		std::vector<type> vector = {};
+		vector.insert(vector.end(), begin(), end());
+		return vector;
+	}
+
+	// vector to dynm_arr
+	template<typename type>
+	dynamic_array<type> convert_to_dynm_arr(std::vector<type>& vector_a)
+	{
+		dynamic_array<type> dynm_arr;
+		dynm_arr.insert(dynm_arr.end(), vector_a.begin(), vector_a.end());
+		return dynm_arr;
+	}
+
+#endif // DYNM_ARR_VECTOR_COMPATIBLE
 }
+
 
 #endif DYNAMIC_ARRAY_H
