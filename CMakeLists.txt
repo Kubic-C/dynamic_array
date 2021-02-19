@@ -2,6 +2,6 @@
 cmake_minimum_required(VERSION "3.12")
 project(dynamic_array_testing)
 
-add_executable(dynm_arr_test "test/main.cpp" "dynamic_array.h")
+add_executable(dynm_arr_test "./testing/main.cpp" "./dynamic_array.h")
 
-include_directories(dynm_arr_test ".")
+include_directories(dynm_arr_test "${CMAKE_CURRENT_SOURCE_DIR}")
