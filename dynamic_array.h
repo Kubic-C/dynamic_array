@@ -135,6 +135,9 @@ namespace DYNM_ARR_NAMESPACE_NAME
 		// erase a part of the array
 		void erase(const_iterator begin, const_iterator end);
 
+		// resize the array. note: making it shorter then the size will trim some elements
+		void resize(size_t size_a);
+
 		// insert an array into the dynamic array
 		void insert(size_t where_, iterator begin, iterator end);
 
@@ -330,6 +333,49 @@ namespace DYNM_ARR_NAMESPACE_NAME
 	}
 
 	template<typename type>
+	void dynamic_array<type>::resize(size_t size_a)
+	{
+		// trim
+		if (size_a < table.capacity)
+		{
+			// make a copy of the table, for keeping the old elements
+			_table<type> table_copy = table;
+
+			// allocate a new array of elements
+			table.size = size_a;
+			table.elements = new type[table.capacity];
+
+			// add the elements that fit
+			for (size_t i = 0; i != table.size; i++)
+				table.elements[i] = table_copy.elements[i];
+
+			delete[] table_copy.elements;
+			return;
+		}
+
+		// append
+		if (size_a > table.capacity)
+		{
+			// make a copy of the table, for keeping the old elements
+			_table<type> table_copy = table;
+
+			// allocate a new array of elements
+			table.size = size_a;
+			table.capacity = size_a;
+			table.elements = new type[table.capacity];
+
+			// add back the elements
+			for (size_t i = 0; i != table.size; i++)
+				table.elements[i] = table_copy.elements[i];
+
+			delete[] table_copy.elements;
+			return;
+		}
+
+		// same size do nothing.
+	}
+
+	template<typename type>
 	void dynamic_array<type>::insert(size_t where_a, iterator begin_a, iterator end_a)
 	{
 		if (where_a > table.size)
@@ -351,9 +397,6 @@ namespace DYNM_ARR_NAMESPACE_NAME
 
 		// allocate a new array of elements
 		table.elements = new type[table.capacity];
-		
-		// there is probably a better way
-		// to implement this
 
 		// set the new elements first
 		for (size_t i = 0; i < amount_of_elements; i++)
@@ -366,12 +409,14 @@ namespace DYNM_ARR_NAMESPACE_NAME
 			if (!(where_a <= i && (where_a+amount_of_elements-1) >= i))
 			{
 #pragma warning(push) // users on other platforms may have to change this
-#pragma warning(disable : 6386)
+#pragma warning(disable : 6386) // disables a buffer overflow warning. testing showed no buffer overflows
 				table.elements[i] = table_copy.elements[j];
 #pragma warning(pop)
 				j++;
 			}
 		}
+
+		delete[] table_copy;
 	}
 
 	template<typename type>

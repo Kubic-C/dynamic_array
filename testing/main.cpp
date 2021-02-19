@@ -12,24 +12,19 @@ int main()
 	dynm_arr.push_back(3);
 
 	std::vector<int> vector = { 0, 1, 2, 3 };
-	std::vector<int> test = { 100, 101 };
 
-	vector.insert(vector.begin(), test.begin(), test.end());
+	vector.resize(6);
 	std::cout 
-		<< "vector: \n";
+		<< "vector: \n"
+		<< "vector capacity: " << vector.capacity() << '\n'
+		<< "vector size: " << vector.size() << '\n';
 
-	for (int& i : vector)
-		std::cout << i << '\n';
+	dynm_arr.resize(6);
+	std::cout
+		<< "dynm_arr: \n"
+		<< "dynm_arr capacity: " << dynm_arr.capacity() << '\n'
+		<< "dynm_arr size: " << dynm_arr.size() << '\n';
 
-	for (;;)
-	{
-		dynm_arr.insert(0, &test[0], &test[1]);
-		std::cout
-			<< "dynamic array: \n";
-
-		for (int& i : dynm_arr)
-			std::cout << i << '\n';
-	}
 
 	std::cin.get();
 	return 0;
