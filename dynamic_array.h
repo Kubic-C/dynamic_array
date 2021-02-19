@@ -83,6 +83,8 @@ namespace DYNM_ARR_NAMESPACE_NAME
 	public: // methods
 		_table<type> get_table() const;
 
+		type& get(size_t index);
+
 		// put an element on the back of the array
 		void push_back(const type& element);
 
@@ -98,7 +100,7 @@ namespace DYNM_ARR_NAMESPACE_NAME
 		// move all elements into a new table; move table(member) into table(argrument) 
 		void _move_elements_into(_table<type>& table);
 
-		// move all elements from a new table; move table(member) into table(argrument) 
+		// move all elements from a new table; move table(argrument) into table(member)
 		void _move_elements_from(_table<type>& table);
 
 	public: // operators
@@ -130,6 +132,25 @@ namespace DYNM_ARR_NAMESPACE_NAME
 	}
 
 	// // methods \\ \\
+
+	template<typename type>
+	_table<type> dynamic_array<type>::get_table() const
+	{
+		return table;
+	}
+
+	template<typename type>
+	type& dynamic_array<type>::get(size_t index_a)
+	{
+		if (index_a > table.size)
+			throw error("invalid index; index_a is more then this->table.size");
+
+		if (index_a < 0)
+			index_a = table.size - (-index_a);
+
+		return table.elements[index_a];
+	}
+
 
 	template<typename type>
 	void dynamic_array<type>::push_back(const type& element_a)
@@ -237,13 +258,7 @@ namespace DYNM_ARR_NAMESPACE_NAME
 	template<typename type>
 	type& dynamic_array<type>::operator[](size_t index_a)
 	{
-		if (index_a > table.size)
-			throw error("invalid index; index_a is more then this->table.size");
-
-		if (index_a < 0)
-			index_a = table.size - (-index_a);
-
-		return table.elements[index_a];
+		return get(index);
 	}
 
 	// // iterators \\ \\
