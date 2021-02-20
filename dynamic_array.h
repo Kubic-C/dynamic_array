@@ -29,10 +29,12 @@
  * if you want to make this
  * intercompatible with std::vector do:
  * #define DYNM_ARR_VECTOR_COMPATIBLE
+ * right before including this file.
  *
- * if you want to define to change 
+ * if you want to change 
  * the namespace name, do:
  * #define DYNM_ARR_NAMESPACE_NAME [enter the namespace name here]
+ * right before including this file.
  * by defualt it is "kubic"
  * 
  * you should use the std::vector<> class
@@ -85,7 +87,7 @@ namespace DYNM_ARR_NAMESPACE_NAME
 
 		void delete_()
 		{
-			if (!elements)
+			if (elements)
 			{
 				delete[] elements;
 				elements = nullptr;
